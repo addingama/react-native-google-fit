@@ -12,9 +12,12 @@ package com.reactnative.googlefit;
 
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.util.Log;
 import java.util.ArrayList;
 import android.content.Intent;
+
+import androidx.annotation.RequiresApi;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -26,7 +29,6 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.LifecycleEventListener;
-import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.uimanager.IllegalViewOperationException;
 import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.fitness.data.HealthDataTypes;
@@ -130,23 +132,14 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
     }
 
     @ReactMethod
-    public void getDailySteps(double startDay, double endDay) {
-        mGoogleFitManager.getStepHistory().displayLastWeeksData((long) startDay, (long) endDay);
-    }
-
-    @ReactMethod
-    public void getWeeklySteps(double startDate, double endDate) {
-        mGoogleFitManager.getStepHistory().displayLastWeeksData((long) startDate, (long) endDate);
-    }
-
-    @ReactMethod
     public void getDailyStepCountSamples(double startDate,
                                          double endDate,
+                                         ReadableMap configs,
                                          Callback errorCallback,
                                          Callback successCallback) {
 
         try {
-            mGoogleFitManager.getStepHistory().aggregateDataByDate((long) startDate, (long) endDate, successCallback);
+            mGoogleFitManager.getStepHistory().aggregateDataByDate((long) startDate, (long) endDate, configs, successCallback);
         } catch (IllegalViewOperationException e) {
             errorCallback.invoke(e.getMessage());
         }
@@ -381,6 +374,49 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
             heartrateHistory.setDataType(DataType.TYPE_HEART_RATE_BPM);
             successCallback.invoke(heartrateHistory.getHistory((long)startDate, (long)endDate));
         } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getHydrationSamples(double startDate,
+                                    double endDate,
+                                    Callback errorCallback,
+                                    Callback successCallback) {
+        try {
+            successCallback.invoke(mGoogleFitManager.getHydrationHistory().getHistory((long) startDate, (long) endDate));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void saveHydration(ReadableArray hydrationArray,
+                           Callback errorCallback,
+                           Callback successCallback) {
+        try {
+            HydrationHistory hydrationHistory = mGoogleFitManager.getHydrationHistory();
+            successCallback.invoke(hydrationHistory.save(hydrationArray));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+    @ReactMethod
+    public void deleteHydration(ReadableMap options, Callback errorCallback, Callback successCallback) {
+        try {
+            HydrationHistory hydrationHistory = mGoogleFitManager.getHydrationHistory();
+            successCallback.invoke(hydrationHistory.delete(options));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    @ReactMethod
+    public void getSleepData(double startDate, double endDate, Callback errorCallback, Callback successCallback) {
+        try {
+           mGoogleFitManager.getSleepHistory().getSleepData((long)startDate, (long)endDate, errorCallback, successCallback);
+        } catch (Error e) {
             errorCallback.invoke(e.getMessage());
         }
     }

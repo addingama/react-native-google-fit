@@ -1,5 +1,7 @@
 # react-native-google-fit
 
+[Gitter Group](https://gitter.im/React-native-google-fit/community) - ask questions, answer questions!
+
 [![npm version](https://badge.fury.io/js/react-native-google-fit.svg)](https://badge.fury.io/js/react-native-google-fit) ![Downloads](https://img.shields.io/npm/dm/react-native-google-fit.svg)
 
 A React Native bridge module for interacting with Google Fit
@@ -17,6 +19,12 @@ A React Native bridge module for interacting with Google Fit
 
 2. Authorize:
 
+    To check whethere GoogleFit is already authorized, simply use a function
+    ```
+        GoogleFit.checkIsAuthorized()
+    ```
+    Then you can simply refer to `GoogleFit.isAuthorized` boolean.
+    
     ```javascript
     // The list of available scopes inside of src/scopes.js file
     const options = {
@@ -68,6 +76,14 @@ A React Native bridge module for interacting with Google Fit
          console.log('Daily steps >>> ', res)
      })
      .catch((err) => {console.warn(err)})
+    
+    // shortcut functions, 
+    // return weekly or daily steps of given date
+    // all params are optional, using new Date() without given date, 
+    // adjustment is 0 by default, determine the first day of week, 0 == Sunday, 1==Monday, etc.
+    GoogleFit.getDailySteps(date).then.catch()
+    GoogleFit.getWeeklySteps(date, adjustment).then().catch()
+     
     ```
 
     **Response:**
@@ -95,6 +111,48 @@ A React Native bridge module for interacting with Google Fit
       { source: "com.xiaomi.hm.health", steps: [] }
     ];
     ```
+    Step also support a optional config to get rawStep Data for detail usage.
+    ```javascript
+    const dailyOptions = {
+        startDate: "2020-07-06T00:00:00.000Z",
+        endDate:  "2020-07-06T23:59:00.000Z",
+        // optional
+        configs:{
+        bucketTime: 15,
+        bucketUnit: 'MINUTE' | 'HOUR' | 'SECOND' | 'DAY'  // must all CAPITALIZE
+        }
+    }
+   ```
+   **Response:**
+   ```javascript
+   // {bucketTime: 15, bucketUnit: 'MINUTE'}
+   [
+      { source: "com.google.android.gms:estimated_steps", 
+        steps: [
+        {
+          "date":"2019-07-06","value": 135
+        },
+        ],
+        rawSteps: [
+          {"endDate": 1594012101944, "startDate": 1594012041944, "steps": 13}, 
+          {"endDate": 1594020600000, "startDate": 1594020596034, "steps": 0}, 
+          {"endDate": 1594020693175, "startDate": 1594020600000, "steps": 24}, 
+          {"endDate": 1594068898912, "startDate": 1594068777409, "steps": 53}, 
+          {"endDate": 1594073158830, "startDate": 1594073066166, "steps": 45}
+        ]
+      },
+    ]
+    
+    // {bucketTime: 1, bucketUnit: 'DAY'}
+    [
+        { source: "com.google.android.gms:estimated_steps",
+            ...
+          rawSteps: [
+           {"endDate": 1594073158830, "startDate": 1594012041944, "steps": 135}
+          ]
+        }
+    ]
+    ```
 
 4. Retrieve Weights
 
@@ -116,12 +174,14 @@ A React Native bridge module for interacting with Google Fit
     ```javascript
     [
       {
+        "addedBy": "app_package_name",
         "value":72,
         "endDate":"2019-06-29T15:02:23.413Z",
         "startDate":"2019-06-29T15:02:23.413Z",
         "day":"Sat"
       },
       {
+        "addedBy": "app_package_name",
         "value":72.4000015258789,
         "endDate":"2019-07-26T08:06:42.903Z",
         "startDate":"2019-07-26T08:06:42.903Z",
@@ -148,6 +208,7 @@ A React Native bridge module for interacting with Google Fit
     ```javascript
     [
       {
+        "addedBy": "app_package_name",
         "value":1.7699999809265137,
         "endDate":"2019-06-29T15:02:23.409Z",
         "startDate":"2019-06-29T15:02:23.409Z",
@@ -348,7 +409,74 @@ A React Native bridge module for interacting with Google Fit
     ]
     ```
 
-12. Other methods:
+12. Retrieve Hydration
+
+    You need to add `FITNESS_NUTRITION_READ_WRITE` scope to your authorization to work with hydration.
+    ```javascript
+    const startDate = '2020-01-05T00:00:17.971Z'; // required
+    const endDate = new Date().toISOString(); // required
+
+    oogleFit.getHydrationSamples(startDate, endDate, (err, res) => {
+      console.log(res);
+    });
+    ```
+
+    **Response:**
+
+    ```javascript
+    [
+      {
+        "addedBy": "app_package_name",
+        "date": "2020-02-01T00:00:00.000Z",
+        "waterConsumed": "0.225"
+      },
+      {
+        "addedBy": "app_package_name",
+        "date": "2020-02-02T00:00:00.000Z",
+        "waterConsumed": "0.325"
+      },
+    ]
+    ```
+
+13. Save Hydration
+
+    This method can update hydration data.
+    An app cannot update data inserted by other apps.
+
+    ```javascript
+    const hydrationArray = [
+      {
+        date: Date.parse('2020-02-01'), // required, timestamp
+        waterConsumed: 0.225, // required, hydration data for a 0.225 liter drink of water
+      },
+      {
+        date: Date.parse('2020-02-02'),
+        waterConsumed: 0.325,
+      },
+    ];
+
+    GoogleFit.saveHydration(hydrationArray, (err, res) => {
+      if (err) throw "Cant save data to the Google Fit";
+    });
+    ```
+
+14. Delete Hydration
+
+    An app cannot delete data inserted by other apps.
+    startDate and endDate MUST not be the same.
+
+    ```javascript
+    const options = {
+      startDate: '2020-01-01T12:33:18.873Z', // required, timestamp or ISO8601 string
+      endDate: new Date().toISOString(), // required, timestamp or ISO8601 string
+    };
+
+    GoogleFit.deleteHydration(options, (err, res) => {
+      console.log(res);
+    });
+    ```
+
+15. Other methods:
 
     ```javascript
     observeSteps(callback); // On Step Changed Event
@@ -359,15 +487,13 @@ A React Native bridge module for interacting with Google Fit
     
     isEnabled(callback); // Checks is permissions granted
     
-    deleteWeight(options, callback); // method to delete weights by options (same as in save weights)
+    deleteWeight(options, callback); // method to delete weights by options (same as in delete hydration)
  
     openFit(); //method to open google fit app
     
     saveHeight(options, callback);
  
-    deleteHeight(options, callback);
- 
-    deleteWeight(options, callback);
+    deleteHeight(options, callback); // method to delete heights by options (same as in delete hydration)
  
     disconnect(); // Closes the connection to Google Play services.
     ```
